@@ -1,0 +1,17 @@
+**/.git
+**/.gitignore
+**/node_modules
+**/dist
+**/.env
+**/.env.*
+!**/.env.example
+**/*.db
+**/*.db-*
+**/.DS_Store
+frontend/node_modules
+backend/node_modules
+backend/rnmc.db
+backend/data/nct-thresholds.xlsx
+backend/data/gop-subjects.xlsx
+*.md
+.cursor

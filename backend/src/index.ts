@@ -33,6 +33,6 @@ app.use('/api/universities', universitiesRouter)
 app.use('/api/admin', adminRouter)
 app.use('/api/stats', statsRouter)
 
-app.listen(config.port, () => {
-  console.log(`RNMC API running on http://127.0.0.1:${config.port}`)
+app.listen(config.port, '0.0.0.0', () => {
+  console.log(`RNMC API running on http://0.0.0.0:${config.port}`)
 })
