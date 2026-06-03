@@ -1,111 +1,62 @@
-import { type FormEvent, useEffect, useState } from 'react'
-import { fetchCities, searchUniversities } from '../api/client'
-import { UniversityCard } from '../components/UniversityCard'
-import type { EntSearchResponse } from '../types'
+import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { fetchCombinations, fetchPublicStats, searchUniversities } from '../api/client'
+import { HeroSection } from '../components/home/HeroSection'
+import { HowItWorks } from '../components/home/HowItWorks'
+import { PopularCombinations } from '../components/home/PopularCombinations'
+import type { FilterOption, PublicStats } from '../types'
 
-/** Public page: enter ENT score and browse matching universities. */
+/** Landing page — intro, stats and links to the search page. */
 export function HomePage() {
-  const [entScore, setEntScore] = useState(90)
-  const [city, setCity] = useState('')
-  const [institutionType, setInstitutionType] = useState('')
-  const [cities, setCities] = useState<string[]>([])
-  const [result, setResult] = useState<EntSearchResponse | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [combinations, setCombinations] = useState<FilterOption[]>([])
+  const [publicStats, setPublicStats] = useState<PublicStats | null>(null)
+  const [previewMatches, setPreviewMatches] = useState<number | null>(null)
 
   useEffect(() => {
-    fetchCities().then(setCities).catch(() => setCities([]))
+    Promise.all([fetchCombinations(), fetchPublicStats()])
+      .then(([combinationList, stats]) => {
+        setCombinations(combinationList)
+        setPublicStats(stats)
+      })
+      .catch(() => {
+        setCombinations([])
+        setPublicStats(null)
+      })
   }, [])
 
-  /** Run ENT search with current filters. */
-  async function handleSearch(event?: FormEvent) {
-    event?.preventDefault()
-    setLoading(true)
-    setError('')
-    try {
-      const data = await searchUniversities({
-        ent_score: entScore,
-        city: city || undefined,
-        institution_type: institutionType || undefined,
-      })
-      setResult(data)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ошибка поиска')
-      setResult(null)
-    } finally {
-      setLoading(false)
-    }
-  }
-
   useEffect(() => {
-    handleSearch()
+    searchUniversities({ ent_score: 90 })
+      .then((data) => setPreviewMatches(data.total_matches))
+      .catch(() => setPreviewMatches(null))
   }, [])
 
   return (
-    <main className="page">
-      <section className="hero-panel">
-        <h1>Куда поступить с твоим ЕНТ?</h1>
-        <p>
-          Введи балл Единого национального тестирования — покажем вузы и колледжи Казахстана, куда
-          можно подать документы.
+    <main className="home-page">
+      <HeroSection
+        stats={publicStats}
+        entScore={90}
+        matchCount={previewMatches}
+        searchPath="/search"
+      />
+
+      <HowItWorks />
+
+      <PopularCombinations combinations={combinations} searchPath="/search" />
+
+      <section className="home-cta">
+        <h2 className="home-section-title">Готовы подобрать вуз?</h2>
+        <p className="home-section-lead">
+          Перейдите к поиску — укажите свой балл ЕНТ и комбинацию предметов.
         </p>
-        <form className="search-form" onSubmit={handleSearch}>
-          <label>
-            Балл ЕНТ
-            <input
-              type="number"
-              min={0}
-              max={140}
-              value={entScore}
-              onChange={(e) => setEntScore(Number(e.target.value))}
-            />
-          </label>
-          <label>
-            Город
-            <select value={city} onChange={(e) => setCity(e.target.value)}>
-              <option value="">Все города</option>
-              {cities.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Тип
-            <select
-              value={institutionType}
-              onChange={(e) => setInstitutionType(e.target.value)}
-            >
-              <option value="">Все</option>
-              <option value="university">ВУЗ</option>
-              <option value="college">Колледж</option>
-            </select>
-          </label>
-          <button type="submit" className="btn-primary" disabled={loading}>
-            {loading ? 'Ищем…' : 'Найти'}
-          </button>
-        </form>
+        <Link to="/search" className="btn btn-primary btn-lg">
+          Перейти к поиску
+        </Link>
       </section>
 
-      {error && <p className="error">{error}</p>}
-
-      {result && (
-        <section>
-          <h2 className="section-title">
-            Найдено: {result.total_matches} · ваш балл {result.ent_score}
-          </h2>
-          {result.universities.length === 0 ? (
-            <p className="muted">По этому баллу вариантов нет — попробуйте снизить фильтры.</p>
-          ) : (
-            <div className="grid">
-              {result.universities.map((u) => (
-                <UniversityCard key={u.id} university={u} entScore={result.ent_score} />
-              ))}
-            </div>
-          )}
-        </section>
-      )}
+      <footer className="home-footer">
+        <p>RNMC College Analytics · данные НЦТ, конкурс 2024</p>
+        <p className="muted">АО «РНМЦ» — стажировочный проект</p>
+      </footer>
     </main>
   )
 }

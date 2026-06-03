@@ -28,16 +28,31 @@ async function request<T>(
   return response.json()
 }
 
-/** Search universities matching the given ENT score. */
+/** Search universities matching the given ENT score and filters. */
 export function searchUniversities(params: {
   ent_score: number
   city?: string
   institution_type?: string
+  combination?: string
+  specialty?: string
 }) {
   const query = new URLSearchParams({ ent_score: String(params.ent_score) })
   if (params.city) query.set('city', params.city)
   if (params.institution_type) query.set('institution_type', params.institution_type)
+  if (params.combination) query.set('combination', params.combination)
+  if (params.specialty) query.set('specialty', params.specialty)
   return request<import('../types').EntSearchResponse>(`/api/universities/search?${query}`)
+}
+
+/** Fetch ENT profile subject combinations for filters. */
+export function fetchCombinations() {
+  return request<import('../types').FilterOption[]>('/api/universities/combinations')
+}
+
+/** Fetch specialty names for filters, optionally scoped to a subject combination. */
+export function fetchSpecialties(combination?: string) {
+  const suffix = combination ? `?combination=${encodeURIComponent(combination)}` : ''
+  return request<string[]>(`/api/universities/specialties${suffix}`)
 }
 
 /** Fetch distinct cities for filters. */
@@ -45,18 +60,48 @@ export function fetchCities() {
   return request<string[]>('/api/universities/cities')
 }
 
-/** Fetch one university with optional ENT filter on programs. */
-export function fetchUniversity(id: number, entScore?: number) {
-  const query = entScore != null ? `?ent_score=${entScore}` : ''
-  return request<import('../types').University>(`/api/universities/${id}${query}`)
+/** Fetch one university with optional ENT and filter params. */
+export function fetchUniversity(
+  id: number,
+  params?: { entScore?: number; combination?: string; specialty?: string },
+) {
+  const query = new URLSearchParams()
+  if (params?.entScore != null) query.set('ent_score', String(params.entScore))
+  if (params?.combination) query.set('combination', params.combination)
+  if (params?.specialty) query.set('specialty', params.specialty)
+  const suffix = query.toString() ? `?${query}` : ''
+  return request<import('../types').University>(`/api/universities/${id}${suffix}`)
 }
 
-/** Admin JSON login. */
-export function loginAdmin(email: string, password: string) {
+/** Log in and receive JWT with user profile. */
+export function loginUser(email: string, password: string) {
   return request<import('../types').TokenResponse>('/api/auth/login/json', {
     method: 'POST',
     body: JSON.stringify({ email, password }),
   })
+}
+
+/** Register a new user account. */
+export function registerUser(email: string, password: string, full_name: string) {
+  return request<import('../types').TokenResponse>('/api/auth/register', {
+    method: 'POST',
+    body: JSON.stringify({ email, password, full_name }),
+  })
+}
+
+/** Fetch the currently authenticated user profile. */
+export function fetchMe() {
+  return request<import('../types').UserProfile>('/api/auth/me', {}, true)
+}
+
+/** @deprecated Use loginUser instead */
+export function loginAdmin(email: string, password: string) {
+  return loginUser(email, password)
+}
+
+/** Fetch public stats for the landing page. */
+export function fetchPublicStats() {
+  return request<import('../types').PublicStats>('/api/stats/public')
 }
 
 /** Dashboard stats (admin). */

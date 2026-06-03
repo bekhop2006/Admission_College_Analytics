@@ -1,10 +1,21 @@
 import { Navigate, NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 
-/** Guard admin routes — redirect to login when unauthenticated. */
+/** Guard admin routes — require authenticated admin user. */
 export function AdminGuard() {
-  const { isAuthenticated } = useAuth()
-  if (!isAuthenticated) return <Navigate to="/admin/login" replace />
+  const { user, loading, isAdmin } = useAuth()
+
+  if (loading) {
+    return (
+      <main className="page">
+        <p className="loading-text">Загрузка…</p>
+      </main>
+    )
+  }
+
+  if (!user) return <Navigate to="/login?redirect=/admin" replace />
+  if (!isAdmin) return <Navigate to="/" replace />
+
   return <Outlet />
 }
 

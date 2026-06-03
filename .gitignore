@@ -1,8 +1,11 @@
+backend/node_modules/
+backend/dist/
 backend/.venv/
 backend/__pycache__/
 backend/**/__pycache__/
 backend/*.db
 backend/.env
+backend/data/nct-thresholds.xlsx
 frontend/node_modules/
 frontend/dist/
 .DS_Store
